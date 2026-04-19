@@ -1,0 +1,6 @@
+# Ignore all image files - they live locally only
+*.png
+*.PNG
+*.jpg
+*.jpeg
+*.dds

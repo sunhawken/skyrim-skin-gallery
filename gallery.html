@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Female Skin Comparisons</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surf: #141414;
+    --surf2: #1c1c1c;
+    --bord: #282828;
+    --accent: #c8a96e;
+    --accent2: #5c3410;
+    --text: #e4dccb;
+    --dim: #5a5a5a;
+    --c1: #1e5c1e;
+    --c1b: #3daa3d;
+    --c1hl: rgba(30,92,30,0.25);
+    --c2: #1e1e7a;
+    --c2b: #5555ee;
+    --c2hl: rgba(30,30,122,0.25);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  /* ══ CONTROLS ══════════════════════════════════════ */
+  .controls {
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #0e0b04 0%, #181006 100%);
+    border-bottom: 2px solid var(--accent2);
+    padding: 7px 14px;
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  }
+  .cg { display: flex; gap: 3px; align-items: center; }
+  .sep { width: 1px; height: 18px; background: var(--bord); margin: 0 2px; }
+  .cl { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; margin-right: 2px; white-space: nowrap; }
+  button {
+    background: var(--surf2); border: 1px solid var(--bord);
+    color: var(--text); padding: 3px 8px; border-radius: 3px;
+    cursor: pointer; font-size: 0.72rem; line-height: 1.5; transition: all .1s;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.on { background: var(--accent2); border-color: var(--accent); color: var(--accent); }
+  button.fav-on { background: #3a2800; border-color: #c8a000; color: #ffc800; }
+  button.sync-on { background: #002233; border-color: #0088cc; color: #44ccff; }
+  input[type=search] {
+    background: var(--surf2); border: 1px solid var(--bord);
+    color: var(--text); padding: 3px 7px; border-radius: 3px;
+    font-size: 0.72rem; outline: none; width: 140px;
+  }
+  input[type=search]:focus { border-color: var(--accent); }
+  .count { font-size: 0.67rem; color: var(--dim); margin-left: auto; }
+
+  /* ══ COMPARE AREA ══════════════════════════════════ */
+  .cmp-area {
+    flex-shrink: 0;
+    position: relative;
+    display: flex;
+    height: 72vh;
+    min-height: 200px;
+    border-bottom: 2px solid var(--bord);
+    overflow: hidden;
+  }
+
+  /* Side-by-side panels */
+  .cmp-panel {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column;
+    position: relative; background: #060606;
+    transition: clip-path 0s;
+  }
+  .cmp-panel.p2 { border-left: 2px solid var(--bord); }
+  .cmp-panel.p1 { border-top: 3px solid var(--c1b); }
+  .cmp-panel.p2 { border-top: 3px solid var(--c2b); }
+
+  /* Slider mode overrides */
+  .cmp-area.slider .cmp-panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; border: none; }
+  .cmp-area.slider .cmp-panel.p1 { border-top: none; z-index: 1; }
+  .cmp-area.slider .cmp-panel.p2 { border-top: none; z-index: 2; border-left: none; }
+
+  /* Panel top bar */
+  .panel-top {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px;
+    background: linear-gradient(180deg, rgba(0,0,0,.85) 0%, transparent 100%);
+    position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  }
+  .pnum {
+    width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 0.65rem; color: #fff;
+  }
+  .p1 .pnum { background: var(--c1b); }
+  .p2 .pnum { background: var(--c2b); }
+  .pname { font-size: 0.72rem; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+
+  /* Race tabs inside panel */
+  .race-tabs {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 5;
+    display: flex; gap: 2px; padding: 4px 6px;
+    background: linear-gradient(0deg, rgba(0,0,0,.85) 0%, transparent 100%);
+    overflow-x: auto; overflow-y: hidden;
+  }
+  .race-tabs::-webkit-scrollbar { height: 3px; }
+  .race-tabs::-webkit-scrollbar-thumb { background: var(--bord); }
+  .race-tab {
+    flex-shrink: 0;
+    background: rgba(20,20,20,.8); border: 1px solid rgba(80,80,80,.5);
+    color: var(--dim); padding: 2px 6px; border-radius: 2px;
+    cursor: pointer; font-size: 0.6rem; backdrop-filter: blur(3px);
+    transition: all .1s;
+  }
+  .p1 .race-tab:hover { border-color: var(--c1b); color: var(--c1b); }
+  .p2 .race-tab:hover { border-color: var(--c2b); color: var(--c2b); }
+  .p1 .race-tab.on { background: var(--c1); border-color: var(--c1b); color: #9f9; }
+  .p2 .race-tab.on { background: var(--c2); border-color: var(--c2b); color: #99f; }
+
+  /* Panel images */
+  .panel-imgs {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+    cursor: zoom-in;
+  }
+  .panel-imgs img {
+    flex: 1; width: 100%;
+    object-fit: contain; object-position: top center;
+    display: block; min-height: 0;
+  }
+  .panel-imgs.stacked img { flex: 1; border-bottom: 1px solid var(--bord); }
+  .panel-imgs.stacked img:last-child { border-bottom: none; }
+  .panel-ph {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; color: var(--dim); font-size: 0.75rem;
+  }
+  .panel-ph .arr { font-size: 1.6rem; opacity: .3; }
+
+  /* Slider handle */
+  .slider-handle {
+    display: none;
+    position: absolute; top: 0; bottom: 0;
+    width: 4px; background: #fff; cursor: ew-resize; z-index: 10;
+    transform: translateX(-50%);
+    box-shadow: 0 0 8px rgba(0,0,0,.8);
+  }
+  .slider-handle::before {
+    content: '◄►';
+    position: absolute; top: 50%; transform: translateY(-50%);
+    left: 50%; margin-left: -18px;
+    width: 36px; height: 24px;
+    background: rgba(255,255,255,.15); backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,.3); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: #fff; letter-spacing: 2px; line-height: 24px; text-align: center;
+  }
+  .cmp-area.slider .slider-handle { display: block; }
+
+  /* Slider label pills */
+  .slider-label-1, .slider-label-2 {
+    position: absolute; bottom: 32px; z-index: 8;
+    background: rgba(0,0,0,.7); border-radius: 3px;
+    padding: 2px 7px; font-size: 0.68rem; color: var(--text);
+    pointer-events: none; white-space: nowrap; max-width: 160px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .slider-label-1 { left: 8px; border-left: 3px solid var(--c1b); }
+  .slider-label-2 { right: 8px; border-right: 3px solid var(--c2b); }
+
+  /* ══ STRIPS ════════════════════════════════════════ */
+  .strips-area {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column;
+  }
+  .strip-row {
+    flex: 1; min-height: 0;
+    display: flex; align-items: stretch;
+  }
+  .strip-row + .strip-row { border-top: 1px solid var(--bord); }
+  .strip-row.kbd-active { background: rgba(255,255,255,.02); }
+
+  .strip-gutter {
+    flex-shrink: 0; width: 32px;
+    display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: .1em;
+    background: var(--surf);
+  }
+  .r1 .strip-gutter { border-right: 2px solid var(--c1b); color: var(--c1b); }
+  .r2 .strip-gutter { border-right: 2px solid var(--c2b); color: var(--c2b); }
+  .r1.kbd-active .strip-gutter { background: var(--c1hl); }
+  .r2.kbd-active .strip-gutter { background: var(--c2hl); }
+
+  .strip {
+    flex: 1; min-width: 0;
+    overflow-x: auto; overflow-y: hidden;
+    display: flex; align-items: stretch;
+    padding: 5px; gap: 5px;
+    background: var(--surf);
+    scroll-behavior: smooth;
+  }
+  .strip::-webkit-scrollbar { height: 6px; }
+  .strip::-webkit-scrollbar-track { background: var(--surf2); }
+  .r1 .strip::-webkit-scrollbar-thumb { background: var(--c1); border-radius: 3px; }
+  .r2 .strip::-webkit-scrollbar-thumb { background: var(--c2); border-radius: 3px; }
+
+  /* Thumbnails */
+  .thumb {
+    flex-shrink: 0; width: 82px;
+    display: flex; flex-direction: column;
+    border: 2px solid var(--bord); border-radius: 3px;
+    overflow: hidden; cursor: pointer; position: relative;
+    background: #0e0e0e;
+    transition: border-color .1s, transform .1s;
+  }
+  .thumb:hover { border-color: var(--accent); transform: scaleY(1.04); }
+  .r1 .thumb.sel { border-color: var(--c1b); box-shadow: 0 0 0 2px var(--c1); background: var(--c1hl); }
+  .r2 .thumb.sel { border-color: var(--c2b); box-shadow: 0 0 0 2px var(--c2); background: var(--c2hl); }
+  .r1 .thumb.kbd-cur { outline: 2px dashed var(--c1b); outline-offset: 2px; }
+  .r2 .thumb.kbd-cur { outline: 2px dashed var(--c2b); outline-offset: 2px; }
+  .thumb.hidden { display: none; }
+  .thumb img {
+    width: 100%; aspect-ratio: 3/4;
+    object-fit: cover; object-position: top center;
+    display: block;
+  }
+  .thumb .noimg {
+    width: 100%; aspect-ratio: 3/4;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: var(--dim);
+  }
+  .thumb-bot {
+    padding: 2px 4px 2px 4px;
+    font-size: 0.56rem; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    background: var(--surf2);
+    display: flex; align-items: center; justify-content: space-between; gap: 2px;
+  }
+  .star-btn {
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-size: 0.75rem; line-height: 1; color: var(--dim); flex-shrink: 0;
+    transition: color .1s;
+  }
+  .star-btn:hover { color: #ffc800; }
+  .star-btn.on { color: #ffc800; }
+
+  /* ══ LIGHTBOX ═════════════════════════════════════ */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,.92); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+    cursor: zoom-out;
+  }
+  .lightbox.on { display: flex; }
+  .lightbox img {
+    max-width: 96vw; max-height: 96vh;
+    object-fit: contain;
+    border: 1px solid var(--bord); border-radius: 3px;
+    box-shadow: 0 0 60px rgba(0,0,0,.8);
+    cursor: default;
+    transform-origin: center center;
+    transition: transform .15s;
+  }
+  .lb-close {
+    position: fixed; top: 14px; right: 18px;
+    background: rgba(0,0,0,.6); border: 1px solid var(--bord);
+    color: var(--text); padding: 4px 10px; border-radius: 3px;
+    cursor: pointer; font-size: 1rem; z-index: 101;
+  }
+  .lb-close:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Controls -->
+<div class="controls">
+  <div class="cg">
+    <span class="cl">Type</span>
+    <button class="on" data-type="BODY">Body</button>
+    <button data-type="HEAD">Head</button>
+    <button data-type="BOTH">Both</button>
+  </div>
+  <div class="sep"></div>
+  <div class="cg">
+    <span class="cl">Mode</span>
+    <button class="on" id="btn-side" onclick="setMode('side')">Side by side</button>
+    <button id="btn-slider" onclick="setMode('slider')">&#9664;&#9654; Slider</button>
+  </div>
+  <div class="sep"></div>
+  <div class="cg">
+    <button id="btn-sync" onclick="toggleSync()">&#8644; Sync strips</button>
+    <button id="btn-fav" onclick="toggleFavFilter()">&#9733; Starred only</button>
+    <button onclick="randomPick()">&#9674; Random</button>
+  </div>
+  <div class="sep"></div>
+  <input type="search" placeholder="Filter mods…" oninput="onSearch(this.value)">
+  <span class="count" id="count"></span>
+</div>
+
+<!-- Compare area -->
+<div class="cmp-area" id="cmp-area">
+
+  <!-- Panel 1 -->
+  <div class="cmp-panel p1" id="panel-1">
+    <div class="panel-top">
+      <span class="pnum">1</span>
+      <span class="pname" id="p1-name">Scroll strip ① below</span>
+    </div>
+    <div class="panel-imgs" id="p1-imgs">
+      <div class="panel-ph" id="p1-ph">
+        <div class="arr">↓</div>Use strip ① to pick a mod
+      </div>
+    </div>
+    <div class="race-tabs" id="p1-races"></div>
+  </div>
+
+  <!-- Panel 2 -->
+  <div class="cmp-panel p2" id="panel-2">
+    <div class="panel-top">
+      <span class="pnum">2</span>
+      <span class="pname" id="p2-name">Scroll strip ② below</span>
+    </div>
+    <div class="panel-imgs" id="p2-imgs">
+      <div class="panel-ph" id="p2-ph">
+        <div class="arr">↓</div>Use strip ② to pick a mod
+      </div>
+    </div>
+    <div class="race-tabs" id="p2-races"></div>
+  </div>
+
+  <!-- Slider handle + labels -->
+  <div class="slider-handle" id="slider-handle"></div>
+  <div class="slider-label-1" id="sl-lab-1"></div>
+  <div class="slider-label-2" id="sl-lab-2"></div>
+
+</div>
+
+<!-- Strips -->
+<div class="strips-area">
+  <div class="strip-row r1 kbd-active" id="row-1">
+    <div class="strip-gutter">①</div>
+    <div class="strip" id="strip-1"></div>
+  </div>
+  <div class="strip-row r2" id="row-2">
+    <div class="strip-gutter">②</div>
+    <div class="strip" id="strip-2"></div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lb-close" onclick="closeLightbox()">&#x2715; Close</button>
+  <img id="lb-img" src="" alt="">
+</div>
+
+<script>
+const MODS = [{"mod": "Aesthetic Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/Breton - Body  - Aesthetic Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/Dark Elf - Body - Aesthetic Skin.png", "High Elf": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/High Elf - Body - Aesthetic Skin.png", "Imperial": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/Imperial - Body - Aesthetic Skin.png", "Nord": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/Nord - Body - Aesthetic Skin.png", "Orc": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/Orc - Body - Aesthetic Skin.png", "Redguard": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/Redguard - Body - Aesthetic Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Aesthetic Skin/BODY/Wood Elf - Body - Aesthetic Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/Breton - Head - Aesthetic Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/Dark Elf - Head - Aesthetic Skin.png", "High Elf": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/High Elf - Head - Aesthetic Skin.png", "Imperial": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/Imperial - Head - Aesthetic Skin.png", "Nord": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/Nord - Head - Aesthetic Skin.png", "Orc": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/Orc - Head - Aesthetic Skin.png", "Redguard": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/Redguard - Head - Aesthetic Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Aesthetic Skin/HEAD/Wood Elf - Head - Aesthetic Skin.png"}}}, {"mod": "Asherz Female Skin Replacer", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/Breton - Body - Asherz Replacer.png.png", "Dark Elf": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/Dark Elf - Body - Asherz Replacer.png", "High Elf": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/High Elf - Body - Asherz Replacer.png", "Imperial": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/Imperial - Body - Asherz Replacer.png.png", "Nord": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/Nord - Body - Asherz Replacer.png.png", "Orc": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/Orc - Body - Asherz Replacer.png", "Redguard": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/Redguard - Body - Asherz Replacer.png.png", "Wood Elf": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/BODY/Wood Elf - Body - Asherz Replacer.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/Breton - Head - Asherz Replacer.png.png", "Dark Elf": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/Dark Elf - Head - Asherz Replacer.png", "High Elf": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/High Elf - Head - Asherz Replacer.png", "Imperial": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/Imperial - Head - Asherz Replacer.png.png", "Nord": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/Nord - Head - Asherz Replacer.png.png", "Orc": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/Orc - Head - Asherz Replacer.png", "Redguard": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/Redguard - Head - Asherz Replacer.png.png", "Wood Elf": "Female Skin Comparisons - Part One/Asherz Female Skin Replacer/HEAD/Wood Elf - Head - Asherz Replacer.png"}}}, {"mod": "Baby Girl", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Baby Girl/BODY/Breton - Body - Baby Girl.png", "Dark Elf": "Female Skin Comparisons - Part One/Baby Girl/BODY/Dark Elf - Body - Baby Girl.png", "High Elf": "Female Skin Comparisons - Part One/Baby Girl/BODY/High Elf - Body - Baby Girl.png", "Imperial": "Female Skin Comparisons - Part One/Baby Girl/BODY/Imperial - Body - Baby Girl.png", "Nody": "Female Skin Comparisons - Part One/Baby Girl/BODY/Nody - Body - Baby Girl.png", "Orc": "Female Skin Comparisons - Part One/Baby Girl/BODY/Orc - Body - Baby Girl.png", "Redguard": "Female Skin Comparisons - Part One/Baby Girl/BODY/Redguard - Body - Baby Girl.png", "Wood Elf": "Female Skin Comparisons - Part One/Baby Girl/BODY/Wood Elf - Body - Baby Girl.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Baby Girl/HEAD/Breton - Head - Baby Girl.png", "Dark Elf": "Female Skin Comparisons - Part One/Baby Girl/HEAD/Dark Elf - Head - Baby Girl.png", "High Elf": "Female Skin Comparisons - Part One/Baby Girl/HEAD/High Elf - Head - Baby Girl.png", "Imperial": "Female Skin Comparisons - Part One/Baby Girl/HEAD/Imperial - Head - Baby Girl.png", "Nord": "Female Skin Comparisons - Part One/Baby Girl/HEAD/Nord - Head - Baby Girl.png", "Orc": "Female Skin Comparisons - Part One/Baby Girl/HEAD/Orc - Head - Baby Girl.png", "Redguard": "Female Skin Comparisons - Part One/Baby Girl/HEAD/Redguard - Head - Baby Girl.png", "Wood Elf": "Female Skin Comparisons - Part One/Baby Girl/HEAD/Wood Elf - Head - Baby Girl.png"}}}, {"mod": "Barbarous Beauty", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/Breton - Body - Barbarous Beauty.png", "Dark Elf": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/Dark Elf - Body - Barbarous Beauty.png", "High Elf": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/High Elf - Body - Barbarous Beauty.png", "Imperial": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/Imperial - Body - Barbarous Beauty.png", "Nord": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/Nord - Body - Barbarous Beauty.png", "Orc": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/Orc - Body - Barbarous Beauty.png", "Redguard": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/Redguard - Body - Barbarous Beauty.png", "Wood Elf": "Female Skin Comparisons - Part One/Barbarous Beauty/BODY/Wood Elf - Body - Barbarous Beauty.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/Breton - Head - Barbarous Beauty.png", "Dark Elf": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/Dark Elf - Head - Barbarous Beauty.png", "High Elf": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/High Elf - Head - Barbarous Beauty.png", "Imperial": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/Imperial - Head - Barbarous Beauty.png", "Nord": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/Nord - Head - Barbarous Beauty.png", "Orc": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/Orc - Head - Barbarous Beauty.png", "Redguard": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/Redguard - Head - Barbarous Beauty.png", "Wood Elf": "Female Skin Comparisons - Part One/Barbarous Beauty/HEAD/Wood Elf - Head - Barbarous Beauty.png"}}}, {"mod": "Bijin Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Bijin Skin/BODY/Breton - Body - Bijin Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Bijin Skin/BODY/Dark Elf - Body - Bijin Skin.png", "High Elf": "Female Skin Comparisons - Part One/Bijin Skin/BODY/High Elf - Body - Bijin Skin.png", "Imperial": "Female Skin Comparisons - Part One/Bijin Skin/BODY/Imperial - Body - Bijin Skin.png", "Nord": "Female Skin Comparisons - Part One/Bijin Skin/BODY/Nord - Body - Bijin Skin.png", "Orc": "Female Skin Comparisons - Part One/Bijin Skin/BODY/Orc - Body - Bijin Skin.png", "Redguard": "Female Skin Comparisons - Part One/Bijin Skin/BODY/Redguard - Body - Bijin Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Bijin Skin/BODY/Wood Elf - Body - Bijin Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/Breton - Head - Bijin Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/Dark Elf - Head - Bijin Skin.png", "High Elf": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/High Elf - Head - Bijin Skin.png", "Imperial": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/Imperial - Head - Bijin Skin.png", "Nord": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/Nord - Head - Bijin Skin.png", "Orc": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/Orc - Head - Bijin Skin.png", "Redguard": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/Redguard - Head - Bijin Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Bijin Skin/HEAD/Wood Elf - Head - Bijin Skin.png"}}}, {"mod": "Binibini Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Binibini Skin/BODY/Breton - Body - Binibini Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Binibini Skin/BODY/Dark Elf - Body - Binibini Skin.png", "High Elf": "Female Skin Comparisons - Part One/Binibini Skin/BODY/High Elf - Body - Binibini Skin.png", "Imperial": "Female Skin Comparisons - Part One/Binibini Skin/BODY/Imperial - Body - Binibini Skin.png", "Nord": "Female Skin Comparisons - Part One/Binibini Skin/BODY/Nord - Body - Binibini Skin.png", "Orc": "Female Skin Comparisons - Part One/Binibini Skin/BODY/Orc - Body - Binibini Skin.png", "Redguard": "Female Skin Comparisons - Part One/Binibini Skin/BODY/Redguard - Body - Binibini Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Binibini Skin/BODY/Wood Elf - Body - Binibini Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/Breton - Head - Binibini Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/Dark Elf - Head - Binibini Skin.png", "High Elf": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/High Elf - Head - Binibini Skin.png", "Imperial": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/Imperial - Head - Binibini Skin.png", "Nord": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/Nord - Head - Binibini Skin.png", "Orc": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/Orc - Head - Binibini Skin.png", "Redguard": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/Redguard - Head - Binibini Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Binibini Skin/HEAD/Wood Elf - Head - Binibini Skin.png"}}}, {"mod": "BnP Female Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/Breton - Body - BnP Female Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/Dark Elf - Body - BnP Female Skin.png", "High Elf": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/High Elf - Body - BnP Female Skin.png", "Imperial": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/Imperial - Body - BnP Female Skin.png", "Nord": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/Nord - Body - BnP Female Skin.png", "Orc": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/Orc - Body - BnP Female Skin.png", "Redguard": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/Redguard - Body - BnP Female Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/BnP Female Skin/BODY/Wood Elf - Body - BnP Female Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/Breton - Head - BnP Female Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/Dark Elf - Head - BnP Female Skin.png", "High Elf": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/High Elf - Head - BnP Female Skin.png", "Imperial": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/Imperial - Head - BnP Female Skin.png", "Nord": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/Nord - Head - BnP Female Skin.png", "Orc": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/Orc - Head - BnP Female Skin.png", "Redguard": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/Redguard - Head - BnP Female Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/BnP Female Skin/HEAD/Wood Elf - Head - BnP Female Skin.png"}}}, {"mod": "Body Imperfect", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Body Imperfect/BODY/Breton - Body - Body Imperfect.png", "Dark Elf": "Female Skin Comparisons - Part One/Body Imperfect/BODY/Dark Elf - Body - Body Imperfect.png", "High Elf": "Female Skin Comparisons - Part One/Body Imperfect/BODY/High Elf - Body - Body Imperfect.png", "Imperial": "Female Skin Comparisons - Part One/Body Imperfect/BODY/Imperial - Body - Body Imperfect.png", "Nord": "Female Skin Comparisons - Part One/Body Imperfect/BODY/Nord - Body - Body Imperfect.png", "Orc": "Female Skin Comparisons - Part One/Body Imperfect/BODY/Orc - Body - Body Imperfect.png", "Redguard": "Female Skin Comparisons - Part One/Body Imperfect/BODY/Redguard - Body - Body Imperfect.png", "Wood Elf": "Female Skin Comparisons - Part One/Body Imperfect/BODY/Wood Elf - Body - Body Imperfect.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/Breton - Face - Body Imperfect.png", "Dark Elf": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/Dark Elf - Face - Body Imperfect.png", "High Elf": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/High Elf - Face - Body Imperfect.png", "Imperial": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/Imperial - Face - Body Imperfect.png", "Nord": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/Nord - Face - Body Imperfect.png", "Orc": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/Orc - Face - Body Imperfect.png", "Redguard": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/Redguard - Face - Body Imperfect.png", "Wood Elf": "Female Skin Comparisons - Part One/Body Imperfect/HEAD/Wood Elf - Face - Body Imperfect.png"}}}, {"mod": "DDG Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/DDG Skin/BODY/Breton - Body - DDG Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/DDG Skin/BODY/Dark Elf - Body - DDG Skin.png", "High Elf": "Female Skin Comparisons - Part One/DDG Skin/BODY/High Elf - Body - DDG Skin.png", "Imperial": "Female Skin Comparisons - Part One/DDG Skin/BODY/Imperial - Body - DDG Skin.png", "Nord": "Female Skin Comparisons - Part One/DDG Skin/BODY/Nord - Body - DDG Skin.png", "Orc": "Female Skin Comparisons - Part One/DDG Skin/BODY/Orc - Body - DDG Skin.png", "Redguard": "Female Skin Comparisons - Part One/DDG Skin/BODY/Redguard - Body - DDG Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/DDG Skin/BODY/Wood Elf - Body - DDG Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/DDG Skin/HEAD/Breton - Head - DDG Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/DDG Skin/HEAD/Dark Elf - Head - DDG Skin.png", "High Elf": "Female Skin Comparisons - Part One/DDG Skin/HEAD/High Elf - Head - DDG Skin.png", "Imperial": "Female Skin Comparisons - Part One/DDG Skin/HEAD/Imperial - Head - DDG Skin.png", "Nord": "Female Skin Comparisons - Part One/DDG Skin/HEAD/Nord - Head - DDG Skin.png", "Orc": "Female Skin Comparisons - Part One/DDG Skin/HEAD/Orc - Head - DDG Skin.png", "Redguard": "Female Skin Comparisons - Part One/DDG Skin/HEAD/Redguard - Head - DDG Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/DDG Skin/HEAD/Wood Elf - Head - DDG Skin.png"}}}, {"mod": "Demoniac", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Demoniac/BODY/Breton - Body - Demoniac.png", "Dark Elf": "Female Skin Comparisons - Part One/Demoniac/BODY/Dark Elf - Body - Demoniac.png.png", "High Elf": "Female Skin Comparisons - Part One/Demoniac/BODY/High Elf - Body - Demoniac.png", "Imperial": "Female Skin Comparisons - Part One/Demoniac/BODY/Imperial - Body - Demoniac.png", "Nord": "Female Skin Comparisons - Part One/Demoniac/BODY/Nord - Body - Demoniac.png", "Orc": "Female Skin Comparisons - Part One/Demoniac/BODY/Orc - Body - Demoniac.png", "Redguard": "Female Skin Comparisons - Part One/Demoniac/BODY/Redguard - Body - Demoniac.png", "Wood Elf": "Female Skin Comparisons - Part One/Demoniac/BODY/Wood Elf - Body - Demoniac.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Demoniac/HEAD/Breton - Head - Demoniac.png", "Dark Elf": "Female Skin Comparisons - Part One/Demoniac/HEAD/Dark Elf - Head - Demoniac.png", "High Elf": "Female Skin Comparisons - Part One/Demoniac/HEAD/High Elf - Head - Demoniac.png", "Imperial": "Female Skin Comparisons - Part One/Demoniac/HEAD/Imperial - Head - Demoniac.png", "Nord": "Female Skin Comparisons - Part One/Demoniac/HEAD/Nord - Head - Demoniac.png", "Orc": "Female Skin Comparisons - Part One/Demoniac/HEAD/Orc - Head - Demoniac.png", "Redguard": "Female Skin Comparisons - Part One/Demoniac/HEAD/Redguard - Head - Demoniac.png", "Wood Elf": "Female Skin Comparisons - Part One/Demoniac/HEAD/Wood Elf - Head - Demoniac.png"}}}, {"mod": "Diamond Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Diamond Skin/BODY/Breton - Body - Diamond Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Diamond Skin/BODY/Dark Elf - Body - Diamond Skin.png", "High Elf": "Female Skin Comparisons - Part One/Diamond Skin/BODY/High Elf - Body - Diamond Skin.png", "Imperial": "Female Skin Comparisons - Part One/Diamond Skin/BODY/Imperial - Body - Diamond Skin.png", "Nord": "Female Skin Comparisons - Part One/Diamond Skin/BODY/Nord - Body - Diamond Skin.png", "Orc": "Female Skin Comparisons - Part One/Diamond Skin/BODY/Orc - Body - Diamond Skin.png", "Redguard": "Female Skin Comparisons - Part One/Diamond Skin/BODY/Redguard - Body - Diamond Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Diamond Skin/BODY/Wood Elf - Body - Diamond Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/Breton - Head - Diamond Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/Dark Elf - Head - Diamond Skin.png", "High Elf": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/High Elf - Head - Diamond Skin.png", "Imperial": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/Imperial - Head - Diamond Skin.png", "Nord": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/Nord - Head - Diamond Skin.png", "Orc": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/Orc - Head - Diamond Skin.png", "Redguard": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/Redguard - Head - Diamond Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Diamond Skin/HEAD/Wood Elf - Head - Diamond Skin.png"}}}, {"mod": "Dibellan - True Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/Breton - Body - Dibellan True Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/Dark Elf - Body - Dibellan True Skin.png", "High Elf": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/High Elf - Body - Dibellan True Skin.png", "Imperial": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/Imperial - Body - Dibellan True Skin.png", "Nord": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/Nord - Body - Dibellan True Skin.png", "Orc": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/Orc - Body - Dibellan True Skin.png", "Redguard": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/Redguard - Body - Dibellan True Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Dibellan - True Skin/BODY/Wood Elf - Body - Dibellan True Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/Breton - Head - Dibellan True Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/Dark Elf - Head - Dibellan True Skin.png", "High Elf": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/High Elf - Head - Dibellan True Skin.png", "Imperial": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/Imperial - Head - Dibellan True Skin.png", "Nord": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/Nord - Head - Dibellan True Skin.png", "Orc": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/Orc - Head - Dibellan True Skin.png", "Redguard": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/Redguard - Head - Dibellan True Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Dibellan - True Skin/HEAD/Wood Elf - Head - Dibellan True Skin.png"}}}, {"mod": "Divine Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Divine Skin/BODY/Breton - Body - Divine Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Divine Skin/BODY/Dark Elf - Body - Divine Skin.png", "High Elf": "Female Skin Comparisons - Part One/Divine Skin/BODY/High Elf - Body - Divine Skin.png", "Imperial": "Female Skin Comparisons - Part One/Divine Skin/BODY/Imperial - Body - Divine Skin.png", "Nord": "Female Skin Comparisons - Part One/Divine Skin/BODY/Nord - Body - Divine Skin.png", "Orc": "Female Skin Comparisons - Part One/Divine Skin/BODY/Orc - Body - Divine Skin.png", "Redguard": "Female Skin Comparisons - Part One/Divine Skin/BODY/Redguard - Body - Divine Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Divine Skin/BODY/Wood Elf - Body - Divine Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Divine Skin/HEAD/Breton - Head - Divine Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Divine Skin/HEAD/Dark Elf - Head - Divine Skin.png", "High Elf": "Female Skin Comparisons - Part One/Divine Skin/HEAD/High Elf - Head - Divine Skin.png", "Imperial": "Female Skin Comparisons - Part One/Divine Skin/HEAD/Imperial - Head - Divine Skin.png", "Nord": "Female Skin Comparisons - Part One/Divine Skin/HEAD/Nord - Head - Divine Skin.png", "Orc": "Female Skin Comparisons - Part One/Divine Skin/HEAD/Orc - Head - Divine Skin.png", "Redguard": "Female Skin Comparisons - Part One/Divine Skin/HEAD/Redguard - Head - Divine Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Divine Skin/HEAD/Wood Elf - Head - Divine Skin.png"}}}, {"mod": "Elina's Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Elina's Skin/BODY/Breton - Body - Elina's Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Elina's Skin/BODY/Dark Elf - Body - Elina's Skin.png", "High Elf": "Female Skin Comparisons - Part One/Elina's Skin/BODY/High Elf - Body - Elina's Skin.png", "Imperial": "Female Skin Comparisons - Part One/Elina's Skin/BODY/Imperial - Body - Elina's Skin.png", "Nord": "Female Skin Comparisons - Part One/Elina's Skin/BODY/Nord - Body - Elina's Skin.png", "Orc": "Female Skin Comparisons - Part One/Elina's Skin/BODY/Orc - Body - Elina's Skin.png", "Redguard": "Female Skin Comparisons - Part One/Elina's Skin/BODY/Redguard - Body - Elina's Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Elina's Skin/BODY/Wood Elf - Body - Elina's Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/Breton - Head - Elina's Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/Dark Elf - Head - Elina's Skin.png", "High Elf": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/High Elf - Head - Elina's Skin.png", "Imperial": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/Imperial - Head - Elina's Skin.png", "Nord": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/Nord - Head - Elina's Skin.png", "Orc": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/Orc - Head - Elina's Skin.png", "Redguard": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/Redguard - Head - Elina's Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Elina's Skin/HEAD/Wood Elf - Head - Elina's Skin.png"}}}, {"mod": "Eos Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Eos Skin/BODY/Breton - Body - Eos Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Eos Skin/BODY/Dark Elf - Body - Eos Skin.png", "High Elf": "Female Skin Comparisons - Part One/Eos Skin/BODY/High Elf - Body - Eos Skin.png", "Imperial": "Female Skin Comparisons - Part One/Eos Skin/BODY/Imperial - Body - Eos Skin.png", "Nord": "Female Skin Comparisons - Part One/Eos Skin/BODY/Nord - Body - Eos Skin.png", "Orc": "Female Skin Comparisons - Part One/Eos Skin/BODY/Orc - Body - Eos Skin.png", "Redguard": "Female Skin Comparisons - Part One/Eos Skin/BODY/Redguard - Body - Eos Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Eos Skin/BODY/Wood Elf - Body - Eos Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Eos Skin/HEAD/Breton - Head - Eos Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Eos Skin/HEAD/Dark Elf - Head - Eos Skin.png", "High Elf": "Female Skin Comparisons - Part One/Eos Skin/HEAD/High Elf - Head - Eos Skin.png", "Imperial": "Female Skin Comparisons - Part One/Eos Skin/HEAD/Imperial - Head - Eos Skin.png", "Nord": "Female Skin Comparisons - Part One/Eos Skin/HEAD/Nord - Head - Eos Skin.png", "Orc": "Female Skin Comparisons - Part One/Eos Skin/HEAD/Orc - Head - Eos Skin.png", "Redguard": "Female Skin Comparisons - Part One/Eos Skin/HEAD/Redguard - Head - Eos Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Eos Skin/HEAD/Wood Elf - Head - Eos Skin.png"}}}, {"mod": "Fair Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Fair Skin/BODY/Breton - Body - Fair Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Fair Skin/BODY/Dark Elf - Body - Fair Skin.png", "High Elf": "Female Skin Comparisons - Part One/Fair Skin/BODY/High Elf - Body - Fair Skin.png", "Imperial": "Female Skin Comparisons - Part One/Fair Skin/BODY/Imperial - Body - Fair Skin.png", "Nord": "Female Skin Comparisons - Part One/Fair Skin/BODY/Nord - Body - Fair Skin.png", "Orc": "Female Skin Comparisons - Part One/Fair Skin/BODY/Orc - Body - Fair Skin.png", "Redguard": "Female Skin Comparisons - Part One/Fair Skin/BODY/Redguard - Body - Fair Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Fair Skin/BODY/Wood Elf - Body - Fair Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Fair Skin/HEAD/Breton - Head - Fair Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Fair Skin/HEAD/Dark Elf - Head - Fair Skin.png", "High Elf": "Female Skin Comparisons - Part One/Fair Skin/HEAD/High Elf - Head - Fair Skin.png", "Imperial": "Female Skin Comparisons - Part One/Fair Skin/HEAD/Imperial - Head - Fair Skin.png", "Nord": "Female Skin Comparisons - Part One/Fair Skin/HEAD/Nord - Head - Fair Skin.png", "Orc": "Female Skin Comparisons - Part One/Fair Skin/HEAD/Orc - Head - Fair Skin.png", "Redguard": "Female Skin Comparisons - Part One/Fair Skin/HEAD/Redguard - Head - Fair Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Fair Skin/HEAD/Wood Elf - Head - Fair Skin.png"}}}, {"mod": "Hiraya Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/Breton - Body - Hiraya Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/Dark Elf - Body - Hiraya Skin.png", "High Elf": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/High Elf - Body - Hiraya Skin.png", "Imperial": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/Imperial - Body - Hiraya Skin.png", "Nord": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/Nord - Body - Hiraya Skin.png", "Orc": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/Orc - Body - Hiraya Skin.png", "Redguard": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/Redguard - Body - Hiraya Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Hiraya Skin/BODY/Wood Elf - Body - Hiraya Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/Breton - Head - Hiraya Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/Dark Elf - Head - Hiraya Skin.png", "High Elf": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/High Elf - Head - Hiraya Skin.png", "Imperial": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/Imperial - Head - Hiraya Skin.png", "Nord": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/Nord - Head - Hiraya Skin.png", "Orc": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/Orc - Head - Hiraya Skin.png", "Redguard": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/Redguard - Head - Hiraya Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Hiraya Skin/HEAD/Wood Elf - Head - Hiraya Skin.png"}}}, {"mod": "Leyenda Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/Breton - Body - Leyenda Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/Dark Elf - Body - Leyenda Skin.png", "High Elf": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/High Elf - Body - Leyenda Skin.png", "Imperial": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/Imperial - Body - Leyenda Skin.png", "Nord": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/Nord - Body - Leyenda Skin.png", "Orc": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/Orc - Body - Leyenda Skin.png", "Redguard": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/Redguard - Body - Leyenda Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Leyenda Skin/BODY/Wood Elf - Body - Leyenda Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/Breton - Head - Leyenda Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/Dark Elf - Head - Leyenda Skin.png", "High Elf": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/High Elf - Head - Leyenda Skin.png", "Imperial": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/Imperial - Head - Leyenda Skin.png", "Nord": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/Nord - Head - Leyenda Skin.png", "Orc": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/Orc - Head - Leyenda Skin.png", "Redguard": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/Redguard - Head - Leyenda Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Leyenda Skin/HEAD/Wood Elf - Head - Leyenda Skin.png"}}}, {"mod": "Lovergirl", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Lovergirl/BODY/Breton - Body - Lovergirl.png", "Dark Elf": "Female Skin Comparisons - Part One/Lovergirl/BODY/Dark Elf - Body - Lovergirl.png", "High Elf": "Female Skin Comparisons - Part One/Lovergirl/BODY/High Elf - Body - Lovergirl.png", "Imperial": "Female Skin Comparisons - Part One/Lovergirl/BODY/Imperial - Body - Lovergirl.png", "Nord": "Female Skin Comparisons - Part One/Lovergirl/BODY/Nord - Body - Lovergirl.png", "Orc": "Female Skin Comparisons - Part One/Lovergirl/BODY/Orc - Body - Lovergirl.png", "Redguard": "Female Skin Comparisons - Part One/Lovergirl/BODY/Redguard - Body - Lovergirl.png", "Wood Elf": "Female Skin Comparisons - Part One/Lovergirl/BODY/Wood Elf - Body - Lovergirl.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Lovergirl/HEAD/Breton - Head - Lovergirl.png", "Dark Elf": "Female Skin Comparisons - Part One/Lovergirl/HEAD/Dark Elf - Head - Lovergirl.png", "High Elf": "Female Skin Comparisons - Part One/Lovergirl/HEAD/High Elf - Head - Lovergirl.png", "Imperial": "Female Skin Comparisons - Part One/Lovergirl/HEAD/Imperial - Head - Lovergirl.png", "Nord": "Female Skin Comparisons - Part One/Lovergirl/HEAD/Nord - Head - Lovergirl.png", "Orc": "Female Skin Comparisons - Part One/Lovergirl/HEAD/Orc - Head - Lovergirl.png", "Redguard": "Female Skin Comparisons - Part One/Lovergirl/HEAD/Redguard - Head - Lovergirl.png", "Wood Elf": "Female Skin Comparisons - Part One/Lovergirl/HEAD/Wood Elf - Head - Lovergirl.png"}}}, {"mod": "Lucid Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Lucid Skin/BODY/Breton - Body - Lucid Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Lucid Skin/BODY/Dark Elf - Body - Lucid Skin.png", "High Elf": "Female Skin Comparisons - Part One/Lucid Skin/BODY/High Elf - Body - Lucid Skin.png", "Imperial": "Female Skin Comparisons - Part One/Lucid Skin/BODY/Imperial - Body - Lucid Skin.png", "Nord": "Female Skin Comparisons - Part One/Lucid Skin/BODY/Nord - Body - Lucid Skin.png", "Orc": "Female Skin Comparisons - Part One/Lucid Skin/BODY/Orc - Body - Lucid Skin.png", "Redguard": "Female Skin Comparisons - Part One/Lucid Skin/BODY/Redguard - Body - Lucid Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Lucid Skin/BODY/Wood Elf - Body - Lucid Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/Breton - Head - Lucid Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/Dark Elf - Head - Lucid Skin.png", "High Elf": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/High Elf - Head - Lucid Skin.png", "Imperial": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/Imperial - Head - Lucid Skin.png", "Nord": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/Nord - Head - Lucid Skin.png", "Orc": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/Orc - Head - Lucid Skin.png", "Redguard": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/Redguard - Head - Lucid Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Lucid Skin/HEAD/Wood Elf - Head - Lucid Skin.png"}}}, {"mod": "Marshmallow Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/Breton - Body - Marshmallow Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/Dark Elf - Body - Marshmallow Skin.png", "High Elf": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/High Elf - Body - Marshmallow Skin.png", "Imperial": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/Imperial - Body - Marshmallow Skin.png", "Nord": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/Nord - Body - Marshmallow Skin.png", "Orc": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/Orc - Body - Marshmallow Skin.png", "Redguard": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/Redguard - Body - Marshmallow Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Marshmallow Skin/BODY/Wood Elf - Body - Marshmallow Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/Breton - Head - Marshmallow Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/Dark Elf - Head - Marshmallow Skin.png", "High Elf": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/High Elf - Head - Marshmallow Skin.png", "Imperial": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/Imperial - Head - Marshmallow Skin.png", "Nord": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/Nord - Head - Marshmallow Skin.png", "Orc": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/Orc - Head - Marshmallow Skin.png", "Redguard": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/Redguard - Head - Marshmallow Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Marshmallow Skin/HEAD/Wood Elf - Head - Marshmallow Skin.png"}}}, {"mod": "Mature Skin", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Mature Skin/BODY/Breton - Body - Mature Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Mature Skin/BODY/Dark Elf - Body - Mature Skin.png", "High Elf": "Female Skin Comparisons - Part One/Mature Skin/BODY/High Elf - Body - Mature Skin.png", "Imperial": "Female Skin Comparisons - Part One/Mature Skin/BODY/Imperial - Body - Mature Skin.png", "Nord": "Female Skin Comparisons - Part One/Mature Skin/BODY/Nord - Body - Mature Skin.png", "Orc": "Female Skin Comparisons - Part One/Mature Skin/BODY/Orc - Body - Mature Skin.png", "Redguard": "Female Skin Comparisons - Part One/Mature Skin/BODY/Redguard - Body - Mature Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Mature Skin/BODY/Wood Elf - Body - Mature Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Mature Skin/HEAD/Breton - Head - Mature Skin.png", "Dark Elf": "Female Skin Comparisons - Part One/Mature Skin/HEAD/Dark Elf - Head - Mature Skin.png", "High Elf": "Female Skin Comparisons - Part One/Mature Skin/HEAD/High Elf - Head - Mature Skin.png", "Imperial": "Female Skin Comparisons - Part One/Mature Skin/HEAD/Imperial - Head - Mature Skin.png", "Nord": "Female Skin Comparisons - Part One/Mature Skin/HEAD/Nord - Head - Mature Skin.png", "Orc": "Female Skin Comparisons - Part One/Mature Skin/HEAD/Orc - Head - Mature Skin.png", "Redguard": "Female Skin Comparisons - Part One/Mature Skin/HEAD/Redguard - Head - Mature Skin.png", "Wood Elf": "Female Skin Comparisons - Part One/Mature Skin/HEAD/Wood Elf - Head - Mature Skin.png"}}}, {"mod": "Mommy", "part": "Female Skin Comparisons - Part One", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part One/Mommy/BODY/Breton - Body - Mommy.png", "Dark Elf": "Female Skin Comparisons - Part One/Mommy/BODY/Dark Elf - Body - Mommy.png", "High Elf": "Female Skin Comparisons - Part One/Mommy/BODY/High Elf - Body - Mommy.png", "Imperial": "Female Skin Comparisons - Part One/Mommy/BODY/Imperial - Body - Mommy.png", "Nord": "Female Skin Comparisons - Part One/Mommy/BODY/Nord - Body - Mommy.png", "Orc": "Female Skin Comparisons - Part One/Mommy/BODY/Orc - Body - Mommy.png", "Redguard": "Female Skin Comparisons - Part One/Mommy/BODY/Redguard - Body - Mommy.png", "Wood Elf": "Female Skin Comparisons - Part One/Mommy/BODY/Wood Elf - Body - Mommy.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part One/Mommy/HEAD/Breton - Head - Mommy.png", "Dark Elf": "Female Skin Comparisons - Part One/Mommy/HEAD/Dark Elf - Head - Mommy.png", "High Elf": "Female Skin Comparisons - Part One/Mommy/HEAD/High Elf - Head - Mommy.png", "Imperial": "Female Skin Comparisons - Part One/Mommy/HEAD/Imperial - Head - Mommy.png", "Nord": "Female Skin Comparisons - Part One/Mommy/HEAD/Nord - Head - Mommy.png", "Orc": "Female Skin Comparisons - Part One/Mommy/HEAD/Orc - Head - Mommy.png", "Redguard": "Female Skin Comparisons - Part One/Mommy/HEAD/Redguard - Head - Mommy.png", "Wood Elf": "Female Skin Comparisons - Part One/Mommy/HEAD/Wood Elf - Head - Mommy.png"}}}, {"mod": "Noble Elegance", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/Breton - Body - Noble Elegance.png", "Dark Elf": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/Dark Elf - Body - Noble Elegance.png", "High Elf": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/High Elf - Body - Noble Elegance.png", "Imperial": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/Imperial - Body - Noble Elegance.png", "Nord": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/Nord - Body - Noble Elegance.png", "Orc": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/Orc - Body - Noble Elegance.png", "Redguard": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/Redguard - Body - Noble Elegance.png", "Wood Elf": "Female Skin Comparisons - Part Two/Noble Elegance/BODY/Wood Elf - Body - Noble Elegance.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/Breton - Head - Noble Elegance.png", "Dark Elf": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/Dark Elf - Head - Noble Elegance.png", "High Elf": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/High Elf - Head - Noble Elegance.png", "Imperial": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/Imperial - Head - Noble Elegance.png", "Nord": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/Nord - Head - Noble Elegance.png", "Orc": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/Orc - Head - Noble Elegance.png", "Redguard": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/Redguard - Head - Noble Elegance.png", "Wood Elf": "Female Skin Comparisons - Part Two/Noble Elegance/HEAD/Wood Elf - Head - Noble Elegance.png"}}}, {"mod": "Northbourne Maiden", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/Breton - Body - Northbourne Maiden.png", "Dark Elf": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/Dark Elf - Body - Northbourne Maiden.png", "High Elf": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/High Elf - Body - Northbourne Maiden.png", "Imperial": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/Imperial - Body - Northbourne Maiden.png", "Nord": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/Nord - Body - Northbourne Maiden.png", "Orc": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/Orc - Body - Northbourne Maiden.png", "Redguard": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/Redguard - Body - Northbourne Maiden.png", "Wood Elf": "Female Skin Comparisons - Part Two/Northbourne Maiden/BODY/Wood Elf - Body - Northbourne Maiden.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/Breton - Head - Northbourne Maiden.png", "Dark Elf": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/Dark Elf - Head - Northbourne Maiden.png", "High Elf": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/High Elf - Head - Northbourne Maiden.png", "Imperial": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/Imperial - Head - Northbourne Maiden.png", "Nord": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/Nord - Head - Northbourne Maiden.png", "Orc": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/Orc - Head - Northbourne Maiden.png", "Redguard": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/Redguard - Head - Northbourne Maiden.png", "Wood Elf": "Female Skin Comparisons - Part Two/Northbourne Maiden/HEAD/Wood Elf - Head - Northbourne Maiden.png"}}}, {"mod": "PB's Silky Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/Breton - Body - PB's Silky Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/Dark Elf - Body - PB's Silky Skin.png", "High Elf": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/High Elf - Body - PB's Silky Skin.png", "Imperial": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/Imperial - Body - PB's Silky Skin.png", "Nord": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/Nord - Body - PB's Silky Skin.png", "Orc": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/Orc - Body - PB's Silky Skin.png", "Redguard": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/Redguard - Body - PB's Silky Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/PB's Silky Skin/BODY/Wood Elf - Body - PB's Silky Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/Breton - Head - PB's Silky Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/Dark Elf - Head - PB's Silky Skin.png", "High Elf": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/High Elf - Head - PB's Silky Skin.png", "Imperial": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/Imperial - Head - PB's Silky Skin.png", "Nord": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/Nord - Head - PB's Silky Skin.png", "Orc": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/Orc - Head - PB's Silky Skin.png", "Redguard": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/Redguard - Head - PB's Silky Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/PB's Silky Skin/HEAD/Wood Elf - Head - PB's Silky Skin.png"}}}, {"mod": "Pride of Valhalla", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/Breton - Body - Pride of Valhalla.png", "Dark Elf": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/Dark Elf - Body - Pride of Valhalla.png", "High Elf": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/High Elf - Body - Pride of Valhalla.png", "Imperial": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/Imperial - Body - Pride of Valhalla.png", "Nord": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/Nord - Body - Pride of Valhalla.png", "Orc": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/Orc - Body - Pride of Valhalla.png", "Redguard": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/Redguard - Body - Pride of Valhalla.png", "Wood Elf": "Female Skin Comparisons - Part Two/Pride of Valhalla/BODY/Wood Elf - Body - Pride of Valhalla.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/Breton - Head - Pride of Valhalla.png", "Dark Elf": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/Dark Elf - Head - Pride of Valhalla.png", "High Elf": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/High Elf - Head - Pride of Valhalla.png", "Imperial": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/Imperial - Head - Pride of Valhalla.png", "Nord": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/Nord - Head - Pride of Valhalla.png", "Orc": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/Orc - Head - Pride of Valhalla.png", "Redguard": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/Redguard - Head - Pride of Valhalla.png", "Wood Elf": "Female Skin Comparisons - Part Two/Pride of Valhalla/HEAD/Wood Elf - Head - Pride of Valhalla.png"}}}, {"mod": "Pure Suka Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/Breton - Body - Pure Suka Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/Dark Elf - Body - Pure Suka Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/High Elf - Body - Pure Suka Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/Imperial - Body - Pure Suka Skin.png", "Nord": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/Nord - Body - Pure Suka Skin.png", "Orc": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/Orc - Body - Pure Suka Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/Redguard - Body - Pure Suka Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Pure Suka Skin/BODY/Wood Elf - Body - Pure Suka Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/Breton - Head - Pure Suka Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/Dark Elf - Head - Pure Suka Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/High Elf - Head - Pure Suka Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/Imperial - Head - Pure Suka Skin.png", "Nord": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/Nord - Head - Pure Suka Skin.png", "Orc": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/Orc - Head - Pure Suka Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/Redguard - Head - Pure Suka Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Pure Suka Skin/HEAD/Wood Elf - Head - Pure Suka Skin.png"}}}, {"mod": "REALORE ULTIMA", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/Breton - Body - REALORE.png", "Dark Elf": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/Dark Elf - Body - REALORE.png", "High Elf": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/High Elf - Body - REALORE.png", "Imperial": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/Imperial - Body - REALORE.png", "Nord": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/Nord - Body - REALORE.png", "Orc": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/Orc - Body - REALORE.png", "Redguard": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/Redguard - Body - REALORE.png", "Wood Elf": "Female Skin Comparisons - Part Two/REALORE ULTIMA/BODY/Wood Elf - Body - REALORE.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/Breton - Head - REALORE.png", "Dark Elf": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/Dark Elf - Head - REALORE.png", "High Elf": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/High Elf - Head - REALORE.png", "Imperial": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/Imperial - Head - REALORE.png", "Nord": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/Nord - Head - REALORE.png", "Orc": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/Orc - Head - REALORE.png", "Redguard": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/Redguard - Head - REALORE.png", "Wood Elf": "Female Skin Comparisons - Part Two/REALORE ULTIMA/HEAD/Wood Elf - Head - REALORE.png"}}}, {"mod": "Real Girls", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Real Girls/BODY/Breton - Body - Real Girls.png", "Dark Elf": "Female Skin Comparisons - Part Two/Real Girls/BODY/Dark Elf - Body - Real Girls.png", "High Elf": "Female Skin Comparisons - Part Two/Real Girls/BODY/High Elf - Body - Real Girls.png", "Imperial": "Female Skin Comparisons - Part Two/Real Girls/BODY/Imperial - Body - Real Girls.png", "Nord": "Female Skin Comparisons - Part Two/Real Girls/BODY/Nord - Body - Real Girls.png", "Orc": "Female Skin Comparisons - Part Two/Real Girls/BODY/Orc - Body - Real Girls.png", "Redguard": "Female Skin Comparisons - Part Two/Real Girls/BODY/Redguard - Body - Real Girls.png", "Wood Elf": "Female Skin Comparisons - Part Two/Real Girls/BODY/Wood Elf - Body - Real Girls.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Real Girls/HEAD/Breton - Head - Real Girls.png", "Dark Elf": "Female Skin Comparisons - Part Two/Real Girls/HEAD/Dark Elf - Head - Real Girls.png", "High Elf": "Female Skin Comparisons - Part Two/Real Girls/HEAD/High Elf - Head - Real Girls.png", "Imperial": "Female Skin Comparisons - Part Two/Real Girls/HEAD/Imperial - Head - Real Girls.png", "Nord": "Female Skin Comparisons - Part Two/Real Girls/HEAD/Nord - Head - Real Girls.png", "Orc": "Female Skin Comparisons - Part Two/Real Girls/HEAD/Orc - Head - Real Girls.png", "Redguard": "Female Skin Comparisons - Part Two/Real Girls/HEAD/Redguard - Head - Real Girls.png", "Wood Elf": "Female Skin Comparisons - Part Two/Real Girls/HEAD/Wood Elf - Head - Real Girls.png"}}}, {"mod": "Reverie Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/Breton - Body - Reverie Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/Dark Elf - Body - Reverie Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/High Elf - Body - Reverie Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/Imperial - Body - Reverie Skin.png", "Nord": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/Nord - Body - Reverie Skin.png", "Orc": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/Orc - Body - Reverie Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/Redguard - Body - Reverie Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Reverie Skin/BODY/Wood Elf - Body - Reverie Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/Breton - Head - Reverie Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/Dark Elf - Head - Reverie Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/High Elf - Head - Reverie Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/Imperial - Head - Reverie Skin.png", "Nord": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/Nord - Head - Reverie Skin.png", "Orc": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/Orc - Head - Reverie Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/Redguard - Head - Reverie Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Reverie Skin/HEAD/Wood Elf - Head - Reverie Skin.png"}}}, {"mod": "Rogue Women of Skyrim", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/Breton - Body - Rogue Women of Skyrim.png", "Dark Elf": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/Dark Elf - Body - Rogue Women of Skyrim.png", "High Elf": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/High Elf - Body - Rogue Women of Skyrim.png", "Imperial": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/Imperial - Body - Rogue Women of Skyrim.png", "Nord": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/Nord - Body - Rogue Women of Skyrim.png", "Orc": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/Orc - Body - Rogue Women of Skyrim.png", "Redguard": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/Redguard - Body - Rogue Women of Skyrim.png", "Wood Elf": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/BODY/Wood Elf - Body - Rogue Women of Skyrim.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/Breton - Head - Rogue Women of Skyrim.png", "Dark Elf": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/Dark Elf - Head - Rogue Women of Skyrim.png", "High Elf": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/High Elf - Head - Rogue Women of Skyrim.png", "Imperial": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/Imperial - Head - Rogue Women of Skyrim.png", "Nord": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/Nord - Head - Rogue Women of Skyrim.png", "Orc": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/Orc - Head - Rogue Women of Skyrim.png", "Redguard": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/Redguard - Head - Rogue Women of Skyrim.png", "Wood Elf": "Female Skin Comparisons - Part Two/Rogue Women of Skyrim/HEAD/Wood Elf - Head - Rogue Women of Skyrim.png"}}}, {"mod": "SG Textures Renewal", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/Breton - Body - SG Textures Renewal.png", "Dark Elf": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/Dark Elf - Body - SG Textures Renewal.png", "High Elf": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/High Elf - Body - SG Textures Renewal.png", "Imperial": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/Imperial - Body - SG Textures Renewal.png", "Nord": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/Nord - Body - SG Textures Renewal.png", "Orc": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/Orc - Body - SG Textures Renewal.png", "Redguard": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/Redguard - Body - SG Textures Renewal.png", "Wood Elf": "Female Skin Comparisons - Part Two/SG Textures Renewal/BODY/Wood Elf - Body - SG Textures Renewal.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/Breton - Head - SG Textures Renewal.png", "Dark Elf": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/Dark Elf - Head - SG Textures Renewal.png", "High Elf": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/High Elf - Head - SG Textures Renewal.png", "Imperial": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/Imperial - Head - SG Textures Renewal.png", "Nord": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/Nord - Head - SG Textures Renewal.png", "Orc": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/Orc - Head - SG Textures Renewal.png", "Redguard": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/Redguard - Head - SG Textures Renewal.png", "Wood Elf": "Female Skin Comparisons - Part Two/SG Textures Renewal/HEAD/Wood Elf - Head - SG Textures Renewal.png"}}}, {"mod": "SRG Female Textures", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/Breton - Body - SRG Female Textures.png", "Dark Elf": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/Dark Elf - Body - SRG Female Textures.png", "High Elf": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/High Elf - Body - SRG Female Textures.png", "Imperial": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/Imperial - Body - SRG Female Textures.png", "Nord": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/Nord - Body - SRG Female Textures.png", "Orc": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/Orc - Body - SRG Female Textures.png", "Redguard": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/Redguard - Body - SRG Female Texturesf.png", "Wood Elf": "Female Skin Comparisons - Part Two/SRG Female Textures/BODY/Wood Elf - Body - SRG Female Textures.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/Breton - Head - SRG Female Textures.png", "Dark Elf": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/Dark Elf - Head - SRG Female Textures.png", "High Elf": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/High Elf - Head - SRG Female Textures.png", "Imperial": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/Imperial - Head - SRG Female Textures.png", "Nord": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/Nord - Head - SRG Female Textures.png", "Orc": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/Orc - Head - SRG Female Textures.png", "Redguard": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/Redguard - Head - SRG Female Textures.png", "Wood Elf": "Female Skin Comparisons - Part Two/SRG Female Textures/HEAD/Wood Elf - Head - SRG Female Textures.png"}}}, {"mod": "Sporty and Cute Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/Breton - Body - Sporty and Cute Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/Dark Elf - Body - Sporty and Cute Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/High Elf - Body - Sporty and Cute Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/Imperial - Body - Sporty and Cute Skin.png", "Nord": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/Nord - Body - Sporty and Cute Skin.png", "Orc": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/Orc - Body - Sporty and Cute Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/Redguard - Body - Sporty and Cute Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/BODY/Wood Elf - Body - Sporty and Cute Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/Breton - Head - Sporty and Cute Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/Dark Elf - Head - Sporty and Cute Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/High Elf - Head - Sporty and Cute Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/Imperial - Head - Sporty and Cute Skin.png", "Nord": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/Nord - Head - Sporty and Cute Skin.png", "Orc": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/Orc - Head - Sporty and Cute Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/Redguard - Head - Sporty and Cute Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Sporty and Cute Skin/HEAD/Wood Elf - Head - Sporty and Cute Skin.png"}}}, {"mod": "Sunday's Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/Breton - Body - Sunday's Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/Dark Elf - Body - Sunday's Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/High Elf - Body - Sunday's Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/Imperial - Body - Sunday's Skin.png", "Nord": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/Nord - Body - Sunday's Skin.png", "Orc": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/Orc - Body - Sunday's Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/Redguard - Body - Sunday's Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Sunday's Skin/BODY/Wood Elf - Body - Sunday's Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/Breton - Head - Sunday's Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/Dark Elf - Head - Sunday's Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/High Elf - Head - Sunday's Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/Imperial - Head - Sunday's Skin.png", "Nord": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/Nord - Head - Sunday's Skin.png", "Orc": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/Orc - Head - Sunday's Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/Redguard - Head - Sunday's Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Sunday's Skin/HEAD/Wood Elf - Head - Sunday's Skin.png"}}}, {"mod": "Sunkiss Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/Breton - Body - Sunkiss Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/Dark Elf - Body - Sunkiss Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/High Elf - Body - Sunkiss Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/Imperial - Body - Sunkiss Skin.png", "Nord": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/Nord - Body - Sunkiss Skin.png", "Orc": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/Orc - Body - Sunkiss Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/Redguard - Body - Sunkiss Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Sunkiss Skin/BODY/Wood Elf - Body - Sunkiss Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/Breton - Head - Sunkiss Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/Dark Elf - Head - Sunkiss Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/High Elf - Head - Sunkiss Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/Imperial - Head - Sunkiss Skin.png", "Nord": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/Nord - Head - Sunkiss Skin.png", "Orc": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/Orc - Head - Sunkiss Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/Redguard - Head - Sunkiss Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Sunkiss Skin/HEAD/Wood Elf - Head - Sunkiss Skin.png"}}}, {"mod": "Tempered Skins for Females", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/Breton - Body - Tempered Skins for Females.png", "Dark Elf": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/Dark Elf - Body - Tempered Skins for Females.png", "High Elf": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/High Elf - Body - Tempered Skins for Females.png", "Imperial": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/Imperial - Body - Tempered Skins for Females.png", "Nord": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/Nord - Body - Tempered Skins for Females.png", "Orc": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/Orc - Body - Tempered Skins for Females.png", "Redguard": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/Redguard - Body - Tempered Skins for Females.png", "Wood Elf": "Female Skin Comparisons - Part Two/Tempered Skins for Females/BODY/Wood Elf - Body - Tempered Skins for Females.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/Breton - Head - Tempered Skins for Females.png", "Dark Elf": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/Dark Elf - Head - Tempered Skins for Females.png", "High Elf": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/High Elf - Head - Tempered Skins for Females.png", "Imperial": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/Imperial - Head - Tempered Skins for Females.png", "Nord": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/Nord - Head - Tempered Skins for Females.png", "Orc": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/Orc - Head - Tempered Skins for Females.png", "Redguard": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/Redguard - Head - Tempered Skins for Females.png", "Wood Elf": "Female Skin Comparisons - Part Two/Tempered Skins for Females/HEAD/Wood Elf - Head - Tempered Skins for Females.png"}}}, {"mod": "The Pure", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/The Pure/BODY/Breton - Body - The Pure.png", "Dark Elf": "Female Skin Comparisons - Part Two/The Pure/BODY/Dark Elf - Body - The Pure.png", "High Elf": "Female Skin Comparisons - Part Two/The Pure/BODY/High Elf - Body - The Pure.png", "Imperial": "Female Skin Comparisons - Part Two/The Pure/BODY/Imperial - Body - The Pure.png", "Nord": "Female Skin Comparisons - Part Two/The Pure/BODY/Nord - Body - The Pure.png", "Orc": "Female Skin Comparisons - Part Two/The Pure/BODY/Orc - Body - The Pure.png", "Redguard": "Female Skin Comparisons - Part Two/The Pure/BODY/Redguard - Body - The Pure.png", "Wood Elf": "Female Skin Comparisons - Part Two/The Pure/BODY/Wood Elf - Body - The Pure.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/The Pure/HEAD/Breton - Head - The Pure.png", "Dark Elf": "Female Skin Comparisons - Part Two/The Pure/HEAD/Dark Elf - Head - The Pure.png", "High Elf": "Female Skin Comparisons - Part Two/The Pure/HEAD/High Elf - Head - The Pure.png", "Imperial": "Female Skin Comparisons - Part Two/The Pure/HEAD/Imperial - Head - The Pure.png", "Nord": "Female Skin Comparisons - Part Two/The Pure/HEAD/Nord - Head - The Pure.png", "Orc": "Female Skin Comparisons - Part Two/The Pure/HEAD/Orc - Head - The Pure.png", "Redguard": "Female Skin Comparisons - Part Two/The Pure/HEAD/Redguard - Head - The Pure.png", "Wood Elf": "Female Skin Comparisons - Part Two/The Pure/HEAD/Wood Elf - Head - The Pure.png"}}}, {"mod": "True Daughters of Skyrim", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/Breton - Body - True Daughters of Skyrim.png", "Dark Elf": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/Dark Elf - Body - True Daughters of Skyrim.png", "High Elf": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/High Elf - Body - True Daughters of Skyrim.png", "Imperial": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/Imperial - Body - True Daughters of Skyrim.png", "Nord": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/Nord - Body - True Daughters of Skyrim.png", "Orc": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/Orc - Body - True Daughters of Skyrim.png", "Redguard": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/Redguard - Body - True Daughters of Skyrim.png", "Wood Elf": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/BODY/Wood Elf - Body - True Daughters of Skyrim.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/Breton - Head - True Daughters of Skyrim.png", "Dark Elf": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/Dark Elf - Head - True Daughters of Skyrim.png", "High Elf": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/High Elf - Head - True Daughters of Skyrim.png", "Imperial": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/Imperial - Head - True Daughters of Skyrim.png", "Nord": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/Nord - Head - True Daughters of Skyrim.png", "Orc": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/Orc - Head - True Daughters of Skyrim.png", "Redguard": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/Redguard - Head - True Daughters of Skyrim.png", "Wood Elf": "Female Skin Comparisons - Part Two/True Daughters of Skyrim/HEAD/Wood Elf - Head - True Daughters of Skyrim.png"}}}, {"mod": "True North Maiden Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/Breton - Body - True North Maiden Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/Dark Elf - Body - True North Maiden Skin.png", "High Elf": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/High Elf - Body - True North Maiden Skin.png", "Imperial": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/Imperial - Body - True North Maiden Skin.png", "Nord": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/Nord - Body - True North Maiden Skin.png", "Orc": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/Orc - Body - True North Maiden Skin.png", "Redguard": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/Redguard - Body - True North Maiden Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/True North Maiden Skin/BODY/Wood Elf - Body - True North Maiden Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/Breton - Head - True North Maiden Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/Dark Elf - Head - True North Maiden Skin.png", "High Elf": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/High Elf - Head - True North Maiden Skin.png", "Imperial": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/Imperial - Head - True North Maiden Skin.png", "Nord": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/Nord - Head - True North Maiden Skin.png", "Orc": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/Orc - Head - True North Maiden Skin.png", "Redguard": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/Redguard - Head - True North Maiden Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/True North Maiden Skin/HEAD/Wood Elf - Head - True North Maiden Skin.png"}}}, {"mod": "Vera Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Vera Skin/BODY/Breton - Body - Vera Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Vera Skin/BODY/Dark Elf - Body - Vera Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Vera Skin/BODY/High Elf - Body - Vera Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Vera Skin/BODY/Imperial - Body - Vera Skin.png", "Nord": "Female Skin Comparisons - Part Two/Vera Skin/BODY/Nord - Body - Vera Skin.png", "Orc": "Female Skin Comparisons - Part Two/Vera Skin/BODY/Orc - Body - Vera Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Vera Skin/BODY/Redguard - Body - Vera Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Vera Skin/BODY/Wood Elf - Body - Vera Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/Breton - Head - Vera Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/Dark Elf - Head - Vera Skin.png", "High Elf": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/High Elf - Head - Vera Skin.png", "Imperial": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/Imperial - Head - Vera Skin.png", "Nord": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/Nord - Head - Vera Skin.png", "Orc": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/Orc - Head - Vera Skin.png", "Redguard": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/Redguard - Head - Vera Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/Vera Skin/HEAD/Wood Elf - Head - Vera Skin.png"}}}, {"mod": "Women of Skyrim", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/Breton - Body - Women of Skyrim.png", "Dark Elf": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/Dark Elf - Body - Women of Skyrim.png", "High Elf": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/High Elf - Body - Women of Skyrim.png", "Imperial": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/Imperial - Body - Women of Skyrim.png", "Nord": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/Nord - Body - Women of Skyrim.png", "Orc": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/Orc - Body - Women of Skyrim.png", "Redguard": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/Redguard - Body - Women of Skyrim.png", "Wood Elf": "Female Skin Comparisons - Part Two/Women of Skyrim/BODY/Wood Elf - Body - Women of Skyrim.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/Breton - Head - Women of Skyrim.png", "Dark Elf": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/Dark Elf - Head - Women of Skyrim.png", "High Elf": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/High Elf - Head - Women of Skyrim.png", "Imperial": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/Imperial - Head - Women of Skyrim.png", "Nord": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/Nord - Head - Women of Skyrim.png", "Orc": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/Orc - Head - Women of Skyrim.png", "Redguard": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/Redguard - Head - Women of Skyrim.png", "Wood Elf": "Female Skin Comparisons - Part Two/Women of Skyrim/HEAD/Wood Elf - Head - Women of Skyrim.png"}}}, {"mod": "XS Sporty Skin", "part": "Female Skin Comparisons - Part Two", "images": {"BODY": {"Breton": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/Breton - Body - XS Sporty Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/Dark Elf - Body - XS Sporty Skin.png", "High Elf": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/High Elf - Body - XS Sporty Skin.png", "Imperial": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/Imperial - Body - XS Sporty Skin.png", "Nord": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/Nord - Body - XS Sporty Skin.png", "Orc": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/Orc - Body - XS Sporty Skin.png", "Redguard": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/Redguard - Body - XS Sporty Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/XS Sporty Skin/BODY/Wood Elf - Body - XS Sporty Skin.png"}, "HEAD": {"Breton": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/Breton - Head - XS Sporty Skin.png", "Dark Elf": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/Dark Elf - Head - XS Sporty Skin.png", "High Elf": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/High Elf - Head - XS Sporty Skin.png", "Imperial": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/Imperial - Head - XS Sporty Skin.png", "Nord": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/Nord - Head - XS Sporty Skin.png", "Orc": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/Orc - Head - XS Sporty Skin.png", "Redguard": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/Redguard - Head - XS Sporty Skin.png", "Wood Elf": "Female Skin Comparisons - Part Two/XS Sporty Skin/HEAD/Wood Elf - Head - XS Sporty Skin.png"}}}];
+const RACES = ['Breton','Dark Elf','High Elf','Imperial','Nord','Orc','Redguard','Wood Elf'];
+
+// State
+let selType = 'BODY';
+let viewMode = 'side'; // 'side' | 'slider'
+let syncOn = false;
+let favOnly = false;
+let query = '';
+let sel = [null, null];           // selected mod index per slot
+let panelRace = ['Nord','Nord'];  // per-panel race
+let kbdSlot = 0;                  // which strip keyboard controls
+let kbdCur = [0, 0];              // keyboard cursor position per slot
+let sliderPct = 50;
+let isDragging = false;
+let favorites = new Set(JSON.parse(localStorage.getItem('skinfav') || '[]'));
+
+function enc(p) { return p.split('/').map(function(s) { return encodeURIComponent(s); }).join('/'); }
+function getImg(mod, t, r) { return (mod.images[t] && mod.images[t][r]) || null; }
+function visibleMods() { return MODS.filter(function(m,i) { return !isThumHidden(i); }); }
+function isThumHidden(i) {
+  const m = MODS[i];
+  if (query && !m.mod.toLowerCase().includes(query)) return true;
+  if (favOnly && !favorites.has(i)) return true;
+  return false;
+}
+
+// ── Build race tabs ──────────────────────────────────
+function buildRaceTabs(panelId, slot) {
+  const cont = document.getElementById('p' + (slot+1) + '-races');
+  cont.innerHTML = '';
+  RACES.forEach(function(r) {
+    const b = document.createElement('button');
+    b.className = 'race-tab' + (r === panelRace[slot] ? ' on' : '');
+    b.textContent = r;
+    b.onclick = function(e) {
+      e.stopPropagation();
+      panelRace[slot] = r;
+      cont.querySelectorAll('.race-tab').forEach(function(x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      renderPanel(slot);
+      if (viewMode === 'slider') updateSliderClip();
+    };
+    cont.appendChild(b);
+  });
+}
+
+// ── Render a compare panel ───────────────────────────
+function renderPanel(slot) {
+  const n = slot + 1;
+  const phEl = document.getElementById('p' + n + '-ph');
+  const imgsEl = document.getElementById('p' + n + '-imgs');
+  const nameEl = document.getElementById('p' + n + '-name');
+
+  // Clear old images
+  imgsEl.querySelectorAll('img').forEach(function(el) { el.remove(); });
+
+  if (sel[slot] === null) {
+    phEl.style.display = 'flex';
+    nameEl.textContent = 'Scroll strip ' + (slot + 1) + ' below';
+    return;
+  }
+  phEl.style.display = 'none';
+  const mod = MODS[sel[slot]];
+  nameEl.textContent = mod.mod;
+
+  const types = selType === 'BOTH' ? ['BODY','HEAD'] : [selType];
+  imgsEl.className = 'panel-imgs' + (selType === 'BOTH' ? ' stacked' : '');
+
+  types.forEach(function(t) {
+    const path = getImg(mod, t, panelRace[slot]);
+    const img = document.createElement('img');
+    img.src = path ? enc(path) : '';
+    img.alt = mod.mod + ' ' + t;
+    img.onclick = function() { openLightbox(img.src); };
+    img.style.cursor = 'zoom-in';
+    if (!path) img.style.display = 'none';
+    imgsEl.appendChild(img);
+  });
+
+  // Slider labels
+  if (viewMode === 'slider') {
+    document.getElementById('sl-lab-1').textContent = MODS[sel[0]] ? MODS[sel[0]].mod : '';
+    document.getElementById('sl-lab-2').textContent = MODS[sel[1]] ? MODS[sel[1]].mod : '';
+    updateSliderClip();
+  }
+}
+
+// ── Compare mode ─────────────────────────────────────
+function setMode(mode) {
+  viewMode = mode;
+  const area = document.getElementById('cmp-area');
+  area.classList.toggle('slider', mode === 'slider');
+  document.getElementById('btn-side').classList.toggle('on', mode === 'side');
+  document.getElementById('btn-slider').classList.toggle('on', mode === 'slider');
+  document.getElementById('p1-races').style.display = '';
+  document.getElementById('p2-races').style.display = '';
+  if (mode === 'slider') {
+    updateSliderClip();
+    document.getElementById('p2-races').style.display = 'none';
+    panelRace[1] = panelRace[0];
+    buildRaceTabs('p2-races', 1);
+  }
+  renderPanel(0); renderPanel(1);
+}
+
+// ── Slider drag ──────────────────────────────────────
+function updateSliderClip() {
+  const p2 = document.getElementById('panel-2');
+  const handle = document.getElementById('slider-handle');
+  p2.style.clipPath = 'inset(0 0 0 ' + sliderPct + '%)';
+  handle.style.left = sliderPct + '%';
+  // Sync race for slider
+  if (viewMode === 'slider') panelRace[1] = panelRace[0];
+}
+
+const handle = document.getElementById('slider-handle');
+handle.addEventListener('mousedown', function(e) { isDragging = true; e.preventDefault(); });
+document.addEventListener('mousemove', function(e) {
+  if (!isDragging) return;
+  const area = document.getElementById('cmp-area');
+  const rect = area.getBoundingClientRect();
+  sliderPct = Math.max(2, Math.min(98, (e.clientX - rect.left) / rect.width * 100));
+  updateSliderClip();
+});
+document.addEventListener('mouseup', function() { isDragging = false; });
+// Touch support for slider
+handle.addEventListener('touchstart', function(e) { isDragging = true; e.preventDefault(); }, {passive:false});
+document.addEventListener('touchmove', function(e) {
+  if (!isDragging) return;
+  const area = document.getElementById('cmp-area');
+  const rect = area.getBoundingClientRect();
+  sliderPct = Math.max(2, Math.min(98, (e.touches[0].clientX - rect.left) / rect.width * 100));
+  updateSliderClip();
+}, {passive:false});
+document.addEventListener('touchend', function() { isDragging = false; });
+
+// ── Strip selection ──────────────────────────────────
+function pickMod(slot, i) {
+  sel[slot] = (sel[slot] === i) ? null : i;
+  kbdCur[slot] = i;
+  renderSel();
+  renderPanel(slot);
+  // scroll selected thumb into view
+  const strip = document.getElementById('strip-' + (slot+1));
+  const thumbs = strip.querySelectorAll('.thumb:not(.hidden)');
+  const visibleIdx = Array.from(MODS).reduce(function(acc,m,mi) {
+    if (!isThumHidden(mi)) acc.push(mi); return acc;
+  }, []).indexOf(i);
+  if (thumbs[visibleIdx]) thumbs[visibleIdx].scrollIntoView({inline:'nearest', behavior:'smooth'});
+}
+
+function renderSel() {
+  ['strip-1','strip-2'].forEach(function(id, slot) {
+    document.querySelectorAll('#' + id + ' .thumb').forEach(function(th, i) {
+      th.classList.toggle('sel', sel[slot] === i);
+    });
+  });
+}
+
+// ── Refresh thumbnails ───────────────────────────────
+function refresh() {
+  ['strip-1','strip-2'].forEach(function(id) {
+    let vis = 0;
+    document.querySelectorAll('#' + id + ' .thumb').forEach(function(th, i) {
+      const hidden = isThumHidden(i);
+      th.classList.toggle('hidden', hidden);
+      if (!hidden) vis++;
+      const img = th.querySelector('img');
+      const noimg = th.querySelector('.noimg');
+      const path = getImg(MODS[i], selType === 'BOTH' ? 'BODY' : selType, panelRace[0]);
+      if (path) { img.src = enc(path); img.style.display = 'block'; noimg.style.display = 'none'; }
+      else { img.src = ''; img.style.display = 'none'; noimg.style.display = 'flex'; }
+    });
+    if (id === 'strip-1') document.getElementById('count').textContent = vis + '\u202f/\u202f' + MODS.length;
+  });
+  renderPanel(0); renderPanel(1);
+}
+
+function onSearch(v) { query = v.toLowerCase(); refresh(); }
+
+// ── Type buttons ─────────────────────────────────────
+document.querySelectorAll('[data-type]').forEach(function(b) {
+  b.onclick = function() {
+    selType = b.dataset.type;
+    document.querySelectorAll('[data-type]').forEach(function(x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    refresh();
+  };
+});
+
+// ── Sync strips ──────────────────────────────────────
+function toggleSync() {
+  syncOn = !syncOn;
+  document.getElementById('btn-sync').classList.toggle('sync-on', syncOn);
+}
+const strip1 = document.getElementById('strip-1');
+const strip2 = document.getElementById('strip-2');
+strip1.addEventListener('scroll', function() { if (syncOn) strip2.scrollLeft = strip1.scrollLeft; });
+strip2.addEventListener('scroll', function() { if (syncOn) strip1.scrollLeft = strip2.scrollLeft; });
+
+// ── Favorites ────────────────────────────────────────
+function toggleFav(i, e) {
+  e.stopPropagation();
+  if (favorites.has(i)) favorites.delete(i); else favorites.add(i);
+  localStorage.setItem('skinfav', JSON.stringify([...favorites]));
+  document.querySelectorAll('.thumb[data-idx="' + i + '"] .star-btn').forEach(function(b) {
+    b.classList.toggle('on', favorites.has(i));
+    b.textContent = favorites.has(i) ? '\u2605' : '\u2606';
+  });
+  if (favOnly) refresh();
+}
+function toggleFavFilter() {
+  favOnly = !favOnly;
+  document.getElementById('btn-fav').classList.toggle('fav-on', favOnly);
+  refresh();
+}
+
+// ── Lightbox ─────────────────────────────────────────
+function openLightbox(src) {
+  if (!src) return;
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb-img').style.transform = 'scale(1)';
+  document.getElementById('lightbox').classList.add('on');
+}
+function closeLightbox(e) {
+  if (e && e.target !== document.getElementById('lightbox') && !e.target.classList.contains('lb-close')) return;
+  document.getElementById('lightbox').classList.remove('on');
+}
+// Scroll to zoom in lightbox
+let lbScale = 1;
+document.getElementById('lb-img').addEventListener('wheel', function(e) {
+  e.preventDefault();
+  lbScale = Math.max(0.5, Math.min(4, lbScale - e.deltaY * 0.002));
+  this.style.transform = 'scale(' + lbScale + ')';
+}, {passive:false});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeLightbox({target: document.getElementById('lightbox')}); }
+});
+
+// ── Keyboard navigation ──────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT') return;
+  if (document.getElementById('lightbox').classList.contains('on')) return;
+
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    kbdSlot = kbdSlot === 0 ? 1 : 0;
+    document.getElementById('row-1').classList.toggle('kbd-active', kbdSlot===0);
+    document.getElementById('row-2').classList.toggle('kbd-active', kbdSlot===1);
+    updateKbdCursor();
+    return;
+  }
+
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const dir = e.key === 'ArrowRight' ? 1 : -1;
+    // find visible mods
+    const visible = MODS.map(function(m,i) { return i; }).filter(function(i) { return !isThumHidden(i); });
+    if (!visible.length) return;
+    const curIdx = visible.indexOf(kbdCur[kbdSlot]);
+    const nextIdx = Math.max(0, Math.min(visible.length-1, (curIdx === -1 ? 0 : curIdx) + dir));
+    kbdCur[kbdSlot] = visible[nextIdx];
+    updateKbdCursor();
+    return;
+  }
+
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    if (kbdCur[kbdSlot] !== null) pickMod(kbdSlot, kbdCur[kbdSlot]);
+    return;
+  }
+});
+
+function updateKbdCursor() {
+  ['strip-1','strip-2'].forEach(function(id, slot) {
+    document.querySelectorAll('#' + id + ' .thumb').forEach(function(th, i) {
+      th.classList.toggle('kbd-cur', kbdSlot === slot && kbdCur[slot] === i);
+    });
+  });
+  // scroll cursor into view
+  const stripId = 'strip-' + (kbdSlot+1);
+  const strip = document.getElementById(stripId);
+  const thumbs = strip.querySelectorAll('.thumb:not(.hidden)');
+  const visible = MODS.map(function(m,i){return i;}).filter(function(i){return !isThumHidden(i);});
+  const pos = visible.indexOf(kbdCur[kbdSlot]);
+  if (thumbs[pos]) thumbs[pos].scrollIntoView({inline:'nearest', behavior:'smooth'});
+}
+
+// ── Build strips ─────────────────────────────────────
+function buildStrip(id, slot) {
+  const strip = document.getElementById(id);
+  MODS.forEach(function(mod, i) {
+    const path = getImg(mod, selType === 'BOTH' ? 'BODY' : selType, panelRace[slot]);
+    const th = document.createElement('div');
+    th.className = 'thumb';
+    th.dataset.idx = i;
+    const isFav = favorites.has(i);
+    th.innerHTML =
+      '<img src="' + (path ? enc(path) : '') + '" alt="' + mod.mod + '" style="display:' + (path?'block':'none') + '">' +
+      '<div class="noimg" style="display:' + (path?'none':'flex') + '">?</div>' +
+      '<div class="thumb-bot">' +
+        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + mod.mod + '</span>' +
+        '<button class="star-btn' + (isFav?' on':'') + '" title="Star" onclick="toggleFav(' + i + ',event)">' + (isFav?'\u2605':'\u2606') + '</button>' +
+      '</div>';
+    th.addEventListener('click', function() { pickMod(slot, i); });
+    strip.appendChild(th);
+  });
+}
+
+// ── Random pick ──────────────────────────────────────
+function randomPick() {
+  const visible = MODS.map(function(m,i){return i;}).filter(function(i){return !isThumHidden(i);});
+  if (visible.length < 2) return;
+  const a = visible[Math.floor(Math.random() * visible.length)];
+  let b = a;
+  while (b === a) b = visible[Math.floor(Math.random() * visible.length)];
+  sel[0] = a; sel[1] = b;
+  kbdCur[0] = a; kbdCur[1] = b;
+  renderSel();
+  renderPanel(0);
+  renderPanel(1);
+}
+
+// ── Init ─────────────────────────────────────────────
+buildRaceTabs('p1-races', 0);
+buildRaceTabs('p2-races', 1);
+buildStrip('strip-1', 0);
+buildStrip('strip-2', 1);
+document.getElementById('count').textContent = MODS.length + '\u202f/\u202f' + MODS.length;
+kbdCur = [0, 0];
+updateKbdCursor();
+</script>
+</body>
+</html>
